@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="bg" class="h-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта в реално време - МГТ София</title>
+    <link rel="stylesheet" href="imports.scss">
+    <link rel="stylesheet" href="styles.scss">
+
+    <meta name="description" content="Карта в реално време на обществения транспорт в София.">
+    <meta name="keywords" content="София, градски транспорт, карта, реално време, автобуси, тролеи, трамваи, МГТ, ЦГМ, двуетажни автобуси, двуетажен автобус">
+    
+    <script src="/data/tram_compositions.js"></script>
+   
+    <script src="js/app.js" type="module"></script>
+    <script src="js/filter_vehicles.js"></script>
+</head>
+<body class="position-relative h-100">
+    <div popover id="stop-time-popover"></div>
+    <div id="vehicles-panel" class="panel position-absolute h-100 d-flex flex-column d-none p-2">
+        <div class="mb-2">
+            <div class="d-flex flex-row justify-content-between mb-2">
+                <button class="btn btn-outline-secondary float-end fw-bolder fs-3 lh-1" onclick="this.parentElement.parentElement.parentElement.classList.add('d-none')">
+                    &lt;
+                </button>
+                <select id="vehicle_type" onchange="apply_filters()" class="form-control form-control-sm float-start ms-2"></select>
+            </div>
+            <select id="vehicle_depot" onchange="apply_filters()" class="form-control form-control-sm mb-2"></select>
+            <input id="vehicle_inv_number" onkeyup="apply_filters()" placeholder="Инвентарен номер" class="form-control form-control-sm"></input>
+            <div>
+                <input id="vehicle_double_decker" type="checkbox" onchange="apply_filters()" class="form-check-input"></input>
+                <label for="vehicle_double_decker" class="form-check-label ms-2">Само двуетажни</label>
+            </div>
+            <div>
+                <input id="vehicle_unexpected" type="checkbox" onchange="apply_filters()" class="form-check-input"></input>
+                <label for="vehicle_unexpected" class="form-check-label ms-2">Необичайни ПС</label>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="vehicles_table" class="table table-sm table-bordered overflow-auto"></table>
+        </div>
+    </div>
+    <div id="stops-panel" class="panel position-absolute h-100 d-flex flex-column d-none p-2">
+        <button class="btn btn-outline-secondary float-end fw-bolder fs-3 lh-1" onclick="this.parentElement.classList.add('d-none')">
+            &lt;
+        </button>
+        <div class="d-flex flex-row align-items-center mb-2">
+            <i class="bi bi-search me-2"></i>
+            <input id="stop_name_filter" onkeyup="update_stop_suggestions()" placeholder="Въведете име или код на спирка" class="form-control form-control-sm"></input>
+        </div>
+        <div class="table-container">
+            <table id="stops_table" class="table table-sm table-bordered overflow-auto">
+                <tbody>
+                    <tr>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="virtual-board-panel" class="panel panel-bottom position-absolute d-flex flex-column d-none p-3 rounded-top-4">
+        <div class="d-flex flex-row justify-content-between mb-2">
+            <span id="stop_name" class="fs-6"></span>
+            <i class="bi bi-x-lg text-end fs-5" style="cursor: pointer;" onclick="this.parentElement.parentElement.classList.add('d-none')"></i>
+        </div>
+        <table class="table table-bordered">
+            <tbody></tbody>
+        </table>
+        <p class="d-flex flex-row justify-content-between mb-0">
+            <button id="refresh-virtual-board" class="btn btn-sm btn-outline-primary" onclick="update_stop_times(Number(this.dataset.code))"><i class="bi bi-arrow-clockwise"></i> Обнови</button>
+            <span id="last-updated" class="text-muted" data-timestamp=""></span>
+        </p>
+        <p class="mb-0">
+            <input class="form-check-input" type="checkbox" id="virtual_board_show_relative" onclick="refresh_stop_times(this.checked ? 'absolute' : 'relative')">
+            <label class="form-check-label" for="virtual_board_show_relative">
+                Показвай точен час на пристигане
+            </label>
+        </p>
+    </div>
+    <div id="settings-panel" class="panel position-absolute h-100 d-flex flex-column d-none p-2">
+        <button class="btn btn-outline-secondary float-end fw-bolder fs-3 lh-1" onclick="this.parentElement.classList.add('d-none')">
+            &lt;
+        </button>
+        <div class="overflow-y-auto">
+            <h3>Настройки</h3>
+            Цветова схема:
+            <div class="form-check form-switch ps-2 mb-3">
+                <input type="radio" name="theme" value="auto" id="theme_auto"/>
+                <label for="theme_auto" class="form-check-label">Автоматично</label>
+                <br>
+                <input type="radio" name="theme" value="light" id="theme_light"/>
+                <label for="theme_light" class="form-check-label">Светла</label>
+                <br>
+                <input type="radio" name="theme" value="dark" id="theme_dark"/>
+                <label for="theme_dark" class="form-check-label">Тъмна</label>
+            </div>
+
+            Позиции на превозни средства:
+            <div class="form-check form-switch ps-2 mb-1">
+                <input type="radio" name="positions_data_source" id="sumc_gtfs" value="gtfs">
+                <label for="sumc_gtfs" class="form-check-label">ЦГМ (GTFS)</label>
+                <br>
+                <input type="radio" name="positions_data_source" id="sumc_avl" value="avl">
+                <label for="sumc_avl" class="form-check-label">ЦГМ (AVL)</label>
+            </div>
+
+
+            <div class="accordion accordion-flush" id="settings_data_sources">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                            GTFS данни
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#settings_data_sources">
+                        <div class="accordion-body">
+                            <strong>Включват:</strong>
+                            <ul>
+                                <li>Отклонение в разписанието</li>
+                                <li>Данни за коли, направление, натовареност и реална скорост</li>
+                            </ul>
+                            <strong>Не включват:</strong>
+                            <ul>
+                                <li>ПС които не са линия</li>
+                                <li>Вторите вагони на трамвайните състави (възможно е да се показват неактуални състави)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                            AVL данни
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#settings_data_sources">
+                        <div class="accordion-body">
+                            <strong>Включват:</strong>
+                            <ul>
+                                <li>ПС които не са линия</li>
+                                <li>Изчислена скорост, която може да не е напълно коректна</li>
+                            </ul>
+                            <strong>Не включват:</strong>
+                            <ul>
+                                <li>Отклонение в разписанието</li>
+                                <li>Реална скорост</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="info-panel" class="panel position-absolute h-100 d-flex flex-column d-none p-2">
+        <button class="btn btn-outline-secondary float-end fw-bolder fs-3 lh-1" onclick="this.parentElement.classList.add('d-none')">
+            &lt;
+        </button>
+        <h3>Информация за проекта</h3>
+        <p>Позиции на превозни средства: Център за градска мобилност</p>
+        <br>
+        <p>Данни за спирки: OpenStreetMap</p>
+        <br>
+        <p>Данни за разписания: Център за градска мобилност</p>
+        <br>
+    </div>
+    <div id="map" class="h-100"></div>
+</body>
+</html>
