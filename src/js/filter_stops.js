@@ -4,7 +4,7 @@ import { is_screen_width_lg_or_less } from './app.js';
 
 function filter_stops(term) {
     const matches = [];
-    const max_shown_stops = 15;
+    const max_shown_stops = 2833;
     term = term.trim().toLowerCase();
     const lacks_term = term.length == 0;
     for(const [code, stop] of stops.entries()) {

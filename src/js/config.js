@@ -9,7 +9,7 @@ const livemap_urls = {
     'gtfs': `ws${base_url}/v2/livemap/`,
 };
 export const WEBSOCKET_URL = livemap_urls[get_setting('data_source')];
-export const VIRTUAL_BOARD_URL = `http${base_url}/v2/virtual-board?stop_code=`;
+export const VIRTUAL_BOARD_URL = `https://sofiatraffic-proxy-zgm0.onrender.com/api/virtual-board?stop_code=`;
 export const DEBUG_MODE = false;
 export const BG_TYPES = {
     'tram': 'Трамвай',

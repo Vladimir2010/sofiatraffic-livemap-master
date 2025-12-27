@@ -1,4 +1,4 @@
-import { determine_route_colour } from 'sofiatraffic-library';
+// import { determine_route_colour } from 'sofiatraffic-library';
 import { BG_TYPES_HTML, MIN_ACTIVE_SPEED, occupancy_mappings } from './config';
 import { proper_inv_number, get_route_classes, register_vehicle_view } from './utils';
 import { get_vehicle_model_name } from '/data/models';
