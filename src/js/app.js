@@ -31,9 +31,12 @@ function init_websocket(attempts=1) {
     //     el.appendChild(alert);
     //     return;
     // }
+    // websocket_connection = new WebSocket('ws://127.0.0.1:5000/v2/livemap/');
+
     websocket_connection = new WebSocket(WEBSOCKET_URL);
     websocket_connection.onmessage = ev => {
         let data = JSON.parse(ev.data);
+        console.log("hello",data);
         const now = Date.now();
 
         console.time('update cache', data.length);

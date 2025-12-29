@@ -17,7 +17,8 @@ function generate_vehicle_popup_text(vehicle, cache) {
         car,
         occupancy,
         timestamp,
-        scheduled_time
+        scheduled_time,
+        delay
     } = vehicle;
 
     // --- Helpers ---
@@ -34,7 +35,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
 
     const parent_div = document.createElement('div');
     parent_div.classList.add('d-flex', 'flex-column');
-    
+
     const first_row = document.createElement('p');
     first_row.classList.add('mb-1');
     parent_div.appendChild(first_row);
@@ -49,10 +50,10 @@ function generate_vehicle_popup_text(vehicle, cache) {
         route_num_span.appendChild(icon);
         route_num_span.appendChild(document.createTextNode(route_text));
         first_row.appendChild(route_num_span);
-        if(car) {
+        if (car) {
             first_row.appendChild(document.createTextNode(` / ${car}`));
             const btn_main_class = is_dark_theme() ? 'btn-outline-light' : 'btn-outline-dark';
-            if(car !== 1 && allCarsOnLine[0].car !== car) {
+            if (car !== 1 && allCarsOnLine[0].car !== car) {
                 const prev_btn = document.createElement('button');
                 prev_btn.className = `btn btn-sm ${btn_main_class} mx-1`;
                 const i = document.createElement('i');
@@ -67,7 +68,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
                 }
             }
 
-            if(car !== totalCars) {
+            if (car !== totalCars) {
                 const next_btn = document.createElement('button');
                 next_btn.className = `btn btn-sm ${btn_main_class} mx-1`;
                 const i = document.createElement('i');
@@ -87,7 +88,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
     {
         const row = document.createElement('div');
         parent_div.appendChild(row);
-        if(modelText) {
+        if (modelText) {
             const model_span = document.createElement('span');
             model_span.innerText = modelText;
             model_span.classList.add('text-nowrap');
@@ -98,7 +99,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
     {
         const row = document.createElement('div');
         parent_div.appendChild(row);
-        if(destination_stop) {
+        if (destination_stop) {
             const icon = document.createElement('i');
             icon.className = 'bi bi-flag-fill';
             row.appendChild(icon);
@@ -120,7 +121,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
         speed_div.appendChild(document.createTextNode(' ' + (speed >= 0 ? speed : '-') + ' km/h'));
         row.appendChild(speed_div);
 
-        if(occupancy) {
+        if (occupancy) {
             const occupancy_text = occupancy_mappings[occupancy] || occupancy || '';
             const span = document.createElement('span');
             span.className = 'mt-auto text-nowrap';
@@ -128,24 +129,12 @@ function generate_vehicle_popup_text(vehicle, cache) {
             row.appendChild(span);
         }
     }
-    
+
     {
         const row = document.createElement('div');
         row.classList.add('d-flex', 'justify-content-between');
         parent_div.appendChild(row);
-        if(scheduled_time) {
-            const now_hh_mm = (new Date()).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' }).split(':').map(Number); 
-            const scheduled_time_hh_mm = typeof scheduled_time == 'number' ? [(Math.floor(scheduled_time / 60)) % 24, scheduled_time % 60] : null;
-            const now_mins = (now_hh_mm[0] * 60 + now_hh_mm[1]) % (24 * 60); 
-            const scheduled_mins = scheduled_time_hh_mm ? (scheduled_time_hh_mm[0] * 60 + scheduled_time_hh_mm[1]) % (24 * 60) : null; 
-            let delay = scheduled_mins ? (now_mins - scheduled_mins) % (24 * 60) : null;
-            if(1000 < delay) {
-                delay -= 24 * 60;
-            }
-            else if(delay < -1000) {
-                delay += 24 * 60;
-            }
-
+        if (delay !== undefined && delay !== null) {
             const delay_class = -1 <= delay && delay <= 3 ? 'text-success' : 'text-danger fw-bold';
             const delayText = `${delay > 0 ? '+' : ''}${delay} мин.`;
 
@@ -160,7 +149,7 @@ function generate_vehicle_popup_text(vehicle, cache) {
             delay_div.appendChild(delay_span);
             row.appendChild(delay_div);
         }
-        else{
+        else {
             row.appendChild(document.createElement('span'));
         }
 
@@ -177,12 +166,12 @@ function generate_vehicle_popup_text(vehicle, cache) {
 
 export function show_markers_in_view(map, vehicles_layer, cache) {
     const bounds = map.getBounds();
-    for(const vehicle of cache) {
+    for (const vehicle of cache) {
         const marker = vehicle.marker;
-        if(!marker) {
+        if (!marker) {
             continue;
         }
-        if(bounds.contains(vehicle.coords)) {
+        if (bounds.contains(vehicle.coords)) {
             marker.addTo(vehicles_layer);
         }
         else {
@@ -192,46 +181,46 @@ export function show_markers_in_view(map, vehicles_layer, cache) {
 }
 
 function generate_tooltip_text({ inv_number, type, car, route_ref }) {
-    if(route_ref === 'null') {
+    if (route_ref === 'null') {
         route_ref = null;
     }
     const classes = get_route_classes(type, route_ref).join(' ');
     return `${proper_inv_number(inv_number)} <span class="${classes}">${BG_TYPES_HTML[route_ref && route_ref.startsWith('N') ? 'night' : type]} ${route_ref ?? 'Няма маршрут'}</span>${car ? ' / ' + car : ''}`;
 }
 
-function create_icon({type, speed, route_ref, reduce_marker, bearing, timestamp , old_coords}) {
+function create_icon({ type, speed, route_ref, reduce_marker, bearing, timestamp, old_coords }) {
     const state = speed > MIN_ACTIVE_SPEED && old_coords ? 'active' : 'passive';
-    
-    const width = !reduce_marker?29:29/3; // initial 25px
-    const half_width = width/2;
-    const height = !reduce_marker?45:45; // initial 41px
+
+    const width = !reduce_marker ? 29 : 29 / 3; // initial 25px
+    const half_width = width / 2;
+    const height = !reduce_marker ? 45 : 45; // initial 41px
 
     const triangle_acute_point = `${half_width},${height}`;
     const triangle_side_margin = 1.75;
-    const triangle_left_point = `${triangle_side_margin-0.75},20`;
-    const triangle_right_point = `${width-triangle_side_margin+0.75},20`;
+    const triangle_left_point = `${triangle_side_margin - 0.75},20`;
+    const triangle_right_point = `${width - triangle_side_margin + 0.75},20`;
 
     const class_name = route_ref != null && route_ref.toString().length <= 2 ? 'large' : 'small';
 
-    const open_svg = `<svg width="${width+1}" height="${height+1}" viewBox="-0.5 -0.5 ${width+0.5} ${height+0.5}" xmlns="http://www.w3.org/2000/svg">`;
+    const open_svg = `<svg width="${width + 1}" height="${height + 1}" viewBox="-0.5 -0.5 ${width + 0.5} ${height + 0.5}" xmlns="http://www.w3.org/2000/svg">`;
     const circle = `<circle stroke="black" stroke-width="0.95px" cx="${half_width}" cy="${half_width}" r="${half_width}"/>`;
     const triangle = `<polygon points="${triangle_left_point} ${triangle_right_point} ${triangle_acute_point}"/>`;
     const triangle_outline = `<g stroke="black" stroke-width="0.95px"><line x1="${triangle_left_point.split(',')[0]}" y1="${triangle_left_point.split(',')[1]}" x2="${triangle_acute_point.split(',')[0]}" y2="${triangle_acute_point.split(',')[1]}"/><line x1="${triangle_right_point.split(',')[0]}" y1="${triangle_right_point.split(',')[1]}" x2="${triangle_acute_point.split(',')[0]}" y2="${triangle_acute_point.split(',')[1]}"/></g>`;
 
-    const text = `<text x="${half_width}px" y="${half_width}px" dominant-baseline="middle" text-anchor="middle" class="svg_text svg_${class_name}" transform-origin="${half_width} ${half_width}" transform="rotate(${state=='active' ? -bearing + 360 : 0})">${route_ref ?? ''}</text>`;
+    const text = `<text x="${half_width}px" y="${half_width}px" dominant-baseline="middle" text-anchor="middle" class="svg_text svg_${class_name}" transform-origin="${half_width} ${half_width}" transform="rotate(${state == 'active' ? -bearing + 360 : 0})">${route_ref ?? ''}</text>`;
     const close_svg = '</svg>';
-    
+
     const route_type = typeof route_ref === 'string' && route_ref.startsWith('N') ? 'night' : type;
     const options = {
         iconSize: [width, height],
-        iconAnchor: [width/2, width/2],
-        popupAnchor: [0, -width/2],
-        tooltipAnchor: [0, -width/2 - 9],
+        iconAnchor: [width / 2, width / 2],
+        popupAnchor: [0, -width / 2],
+        tooltipAnchor: [0, -width / 2 - 9],
         className: `vehicle-${route_type} ${Date.now() / 1000 - timestamp > 60 ? 'vehicle-inactive' : ''}`,
     }
-    if(state == 'active') {
+    if (state == 'active') {
         options.html = `${open_svg}${circle}${triangle}${triangle_outline}${text}${close_svg}`;
-        options.rotationOrigin = options.iconAnchor.map(a => a+' px').join(' ');
+        options.rotationOrigin = options.iconAnchor.map(a => a + ' px').join(' ');
     }
     else {
         options.html = `${open_svg}${circle}${text}${close_svg}`;
@@ -254,11 +243,11 @@ function create_marker(vehicle) {
 }
 
 function bind_popup_and_tooltip(e, vehicle, cache) {
-    if(e.target.getPopup()) {
+    if (e.target.getPopup()) {
         return;
     }
     const popup_options = {
-        className : 'fs-6',
+        className: 'fs-6',
         closeButton: false,
         minWidth: 275
     }
@@ -277,18 +266,18 @@ function bind_popup_and_tooltip(e, vehicle, cache) {
     e.target.bindTooltip(tooltip_text, tooltip_options);
 
 
-    if(e.type === 'click') {
+    if (e.type === 'click') {
         e.target.openPopup();
         register_vehicle_view(vehicle.type, vehicle.inv_number, true);
     }
-    else if(e.type === 'mouseover') {
+    else if (e.type === 'mouseover') {
         e.target.openTooltip();
     }
 }
 
 export function update_map_markers(cache, map) {
     // const now = Date.now() / 1000;
-    for(const vehicle of cache) {
+    for (const vehicle of cache) {
         // const time_diff = now - vehicle.timestamp;
         // if(time_diff > 30) {
         //     if(vehicle.marker) {
@@ -297,29 +286,29 @@ export function update_map_markers(cache, map) {
         //     }
         //     continue;
         // }
-        if(vehicle.hidden && vehicle.marker) {
+        if (vehicle.hidden && vehicle.marker) {
             vehicle.marker.remove();
             vehicle.marker = null;
             continue;
         }
 
-        if(vehicle.hidden && !vehicle.marker) {
+        if (vehicle.hidden && !vehicle.marker) {
             continue;
         }
 
-        if(!vehicle.marker) {
+        if (!vehicle.marker) {
             vehicle.marker = create_marker(vehicle)
-            .on('click mouseover', (e) => {
-                bind_popup_and_tooltip(e, vehicle, cache);
-            })
-            .on('move', (e) => {
-                const popup = e.target.getPopup();
-                if(popup) {
-                    const vehicle = cache.find(v => v.marker == e.target);
-                    const popup_text = generate_vehicle_popup_text(vehicle, cache);
-                    popup.setContent(popup_text);
-                }
-            });
+                .on('click mouseover', (e) => {
+                    bind_popup_and_tooltip(e, vehicle, cache);
+                })
+                .on('move', (e) => {
+                    const popup = e.target.getPopup();
+                    if (popup) {
+                        const vehicle = cache.find(v => v.marker == e.target);
+                        const popup_text = generate_vehicle_popup_text(vehicle, cache);
+                        popup.setContent(popup_text);
+                    }
+                });
             continue;
         }
 

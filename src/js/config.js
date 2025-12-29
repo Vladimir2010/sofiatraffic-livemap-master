@@ -3,11 +3,17 @@ import { get_setting } from './app.js';
 export const MERGE_TRAM_COMPONENTS = true;
 export const MIN_ACTIVE_SPEED = 3;
 // const base_url = '://127.0.0.1:4000';
-const base_url = 's://sofiatraffic-proxy.onrender.com';
+// const base_url = 's://sofiatraffic-proxy.onrender.com';
+// const livemap_urls = {
+//     'avl': `ws${base_url}/livemap/`,
+//     'gtfs': `ws${base_url}/v2/livemap/`,
+// };
+const base_url = 's://sofiatraffic-livemap-backend-z8ft.onrender.com';
 const livemap_urls = {
     'avl': `ws${base_url}/livemap/`,
     'gtfs': `ws${base_url}/v2/livemap/`,
 };
+// https://sofiatraffic-livemap-backend-z8ft.onrender.com/v2/livemap/
 export const WEBSOCKET_URL = livemap_urls[get_setting('data_source')];
 export const VIRTUAL_BOARD_URL = `https://sofiatraffic-proxy-zgm0.onrender.com/api/virtual-board?stop_code=`;
 export const DEBUG_MODE = false;
